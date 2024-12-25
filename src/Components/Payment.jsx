@@ -6,8 +6,9 @@ import { FaGooglePay } from "react-icons/fa6";
 import { FaStripe } from "react-icons/fa";
 import { SiRazorpay } from "react-icons/si";
 import { FaPaypal } from "react-icons/fa";
- import { v4 as uuidv4 } from "uuid";
+import { v4 as uuidv4 } from "uuid";
 import sha256 from "sha256";
+ import { Buffer } from 'buffer';
 
 export default function Payment() {
   const [formData, setFormData] = useState({
@@ -31,67 +32,73 @@ export default function Payment() {
       window.location.reload();
     }, 2000);
   };
-  const transactionid = "TR" + uuidv4().toString(36).slice(-6);
-  const datas = {
-    merchantId:"PGTESTPAYUAT",
-    merchantTransactionId:transactionid,
-    merchantUserId: "MU" + uuidv4().toString(36).slice(-6),
-    amount: 1000,
-    redirectUrl: `http://localhost:5173/`,
-    redirectMode: "POST",
-    callbackUrl: `http://localhost:5173/`,
-    mobileNumber: "9999999999",
-    paymentInstrument: {
-      type: "PAY_PAGE",
-    },
-  };
 
-  const DataPayLoad = JSON.stringify(datas);
-  const FullUrl = DataPayLoad + "pg/v1/pay" + "099eb0cd-02cf-4e2a-8aca-3e6c6aff0399";
-  const dataSha256 = sha256(FullUrl);
-  const checksum = `${dataSha256}${"####"}${1}`;
-  console.log("checksum = ", checksum);
-  
-  
   const handlePhonePe = async () => {
-   
-       try {
-        const response = await fetch(
-          "https://api-preprod.phonepe.com/apis/pg-sandbox/pg/v1/pay",
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              accept: "application/json",
-              "X-VERIFY": checksum,
-            },
-            body: JSON.stringify(datas),
-          }
-        );
-  
-        if (response.ok) {
-          const data = await response.json();
-          const redirect = data?.data?.instrumentResponse?.redirectInfo?.url;
-          if (redirect) {
-            window.location.href = redirect;
-          } else {
-            toast.error("Payment response did not include a redirect URL.", {
-              position: "top-center",
-            });
-          }
-        } 
-        
-      } catch (error) {
-        console.error("Error during payment processing:", error);
-        toast.error("Payment processing encountered an error.", {
+    try {
+      const transactionid = "Tr-" + uuidv4().toString(36).slice(-6);
+
+      const payload = {
+        merchantId: "PGTESTPAYUAT",
+        merchantTransactionId:"MT7850590068188104",
+        merchantUserId: "MU933037302229373",
+        amount: 1000,
+        redirectUrl: `http://localhost:3000/api/status/${transactionid}`,
+        redirectMode: "REDIRECT",
+        callbackUrl: `http://localhost:3000/api/status/${transactionid}`,
+        mobileNumber: '6280156850',
+        paymentInstrument: {
+          type: "PAY_PAGE",
+        },
+      };
+
+      const DataPayLoad = JSON.stringify(payload);
+      const dataBase64 = Buffer.from(DataPayLoad).toString("base64");
+      const fullURL = dataBase64 + "/pg/v1/pay" + "099eb0cd-02cf-4e2a-8aca-3e6c6aff0399";
+      const dataSha256 = sha256(fullURL);
+      const checksum = dataSha256 + "###" + 1;
+
+      // console.log("Payload:", payload);
+      // console.log("Base64:", dataBase64);
+      // console.log("Checksum:", checksum);
+
+        const response = await fetch('https://api-preprod.phonepe.com/apis/pg-sandbox/pg/v1/pay', {
+        method: "POST",
+        headers: {
+          accept: 'application/json',
+          'Content-Type':'application/json',
+          "X-VERIFY": checksum,
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        console.log("API Response:", data);
+        const redirect = data?.data?.instrumentResponse?.redirectInfo?.url;
+        if (redirect) {
+          window.location.href = redirect;
+        } else {
+          toast.error("Payment response did not include a redirect URL.", {
+            position: "top-center",
+          });
+        }
+      } else {
+        console.error("API Error:", await response.text());
+        toast.error("Payment API call failed.", {
           position: "top-center",
         });
-       }
-    
+      }
+    } catch (error) {
+      console.error("Error during payment processing:", error);
+      toast.error("Payment processing encountered an error.", {
+        position: "top-center",
+      });
+    }
   };
-  
-  
- 
+
+
+
+
   const handleSubmit = (e) => {
     e.preventDefault();
     const { firstName, lastName, email, cardNumber, expirationDate, cvc, zip } =
@@ -122,11 +129,11 @@ export default function Payment() {
 
   return (
     <>
-   
+
       <form onSubmit={handleSubmit}>
-      <div className="Heading-for-payment">
-    <h1>Payment</h1>
-    </div>
+        <div className="Heading-for-payment">
+          <h1>Payment</h1>
+        </div>
         <div className="payment-details">
           <div className="payment-inner-part">
             <div className="cart-Holder">
@@ -205,17 +212,17 @@ export default function Payment() {
               <ToastContainer />
             </div>
             <div className="payment-methods">
-         <SiPhonepe size={27} onClick={()=>handlePhonePe()}/>
-         <FaGooglePay size={27}/>
-         <FaStripe size={27}/>
-         <SiRazorpay size={27}/>
-         <FaPaypal size={27}/>
-        </div>
+              <SiPhonepe size={27} onClick={() => handlePhonePe()} />
+              <FaGooglePay size={27} />
+              <FaStripe size={27} />
+              <SiRazorpay size={27} />
+              <FaPaypal size={27} />
+            </div>
           </div>
-          
+
         </div>
-     
-             </form>
-     </>
+
+      </form>
+    </>
   );
 }
