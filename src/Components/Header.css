@@ -859,11 +859,13 @@ color: #484545;
 }
 .payment-methods{
   margin-top: 30px;
-  text-align: center;
+  display: flex;
+   justify-content: center ;
+   align-items: center;
+ gap: 20px;
+ cursor: pointer;
 }
-.payment-methods i{
-  padding: 0 16px;
-}
+ 
 form .submit-btn{
   padding-top: 26px;
 }

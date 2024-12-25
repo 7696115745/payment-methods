@@ -1,10 +1,15 @@
 import React, { useState } from "react";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-import { useNavigate } from "react-router-dom";
+import { SiPhonepe } from "react-icons/si";
+import { FaGooglePay } from "react-icons/fa6";
+import { FaStripe } from "react-icons/fa";
+import { SiRazorpay } from "react-icons/si";
+import { FaPaypal } from "react-icons/fa";
+ import { v4 as uuidv4 } from "uuid";
+import sha256 from "sha256";
 
 export default function Payment() {
-  const navigate = useNavigate();
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
@@ -21,13 +26,72 @@ export default function Payment() {
     });
 
     setTimeout(() => {
-      navigate("/");
       localStorage.removeItem("cartItems");
       localStorage.removeItem("cartCount");
       window.location.reload();
     }, 2000);
   };
+  const transactionid = "TR" + uuidv4().toString(36).slice(-6);
+  const datas = {
+    merchantId:"PGTESTPAYUAT",
+    merchantTransactionId:transactionid,
+    merchantUserId: "MU" + uuidv4().toString(36).slice(-6),
+    amount: 1000,
+    redirectUrl: `http://localhost:5173/`,
+    redirectMode: "POST",
+    callbackUrl: `http://localhost:5173/`,
+    mobileNumber: "9999999999",
+    paymentInstrument: {
+      type: "PAY_PAGE",
+    },
+  };
 
+  const DataPayLoad = JSON.stringify(datas);
+  const FullUrl = DataPayLoad + "pg/v1/pay" + "099eb0cd-02cf-4e2a-8aca-3e6c6aff0399";
+  const dataSha256 = sha256(FullUrl);
+  const checksum = `${dataSha256}${"####"}${1}`;
+  console.log("checksum = ", checksum);
+  
+  
+  const handlePhonePe = async () => {
+   
+       try {
+        const response = await fetch(
+          "https://api-preprod.phonepe.com/apis/pg-sandbox/pg/v1/pay",
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              accept: "application/json",
+              "X-VERIFY": checksum,
+            },
+            body: JSON.stringify(datas),
+          }
+        );
+  
+        if (response.ok) {
+          const data = await response.json();
+          const redirect = data?.data?.instrumentResponse?.redirectInfo?.url;
+          if (redirect) {
+            window.location.href = redirect;
+          } else {
+            toast.error("Payment response did not include a redirect URL.", {
+              position: "top-center",
+            });
+          }
+        } 
+        
+      } catch (error) {
+        console.error("Error during payment processing:", error);
+        toast.error("Payment processing encountered an error.", {
+          position: "top-center",
+        });
+       }
+    
+  };
+  
+  
+ 
   const handleSubmit = (e) => {
     e.preventDefault();
     const { firstName, lastName, email, cardNumber, expirationDate, cvc, zip } =
@@ -54,6 +118,7 @@ export default function Payment() {
     const { name, value } = e.target;
     setFormData({ ...formData, [name]: value });
   };
+
 
   return (
     <>
@@ -140,13 +205,11 @@ export default function Payment() {
               <ToastContainer />
             </div>
             <div className="payment-methods">
-        <i className="fa-brands  fa-2xl fa-cc-visa" style={{color: "#ffd43b;"}}></i>
-        <i className="fa-regular fa-credit-card fa-2xl"></i> 
-        <i className="fa-brands fa-google-pay fa-2xl"></i>
-        <i className="fa-brands fa-cc-paypal fa-2xl"></i>
-        <i className="fa-brands fa-apple-pay fa-2xl"></i>
-        <i className="fa-brands fa-cc-mastercard fa-2xl"></i>
-        <i className="fa-brands fa-cc-amazon-pay fa-2xl"></i>
+         <SiPhonepe size={27} onClick={()=>handlePhonePe()}/>
+         <FaGooglePay size={27}/>
+         <FaStripe size={27}/>
+         <SiRazorpay size={27}/>
+         <FaPaypal size={27}/>
         </div>
           </div>
           
